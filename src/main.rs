@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use std::net::UdpSocket;
 
 #[derive(Debug, PartialEq)]
@@ -10,17 +11,6 @@ enum RequestType {
 }
 
 impl RequestType {
-    /*
-    * fn length(self) -> u8 {
-        match self {
-            Self::Invalid => 0x000,
-            Self::Login => 0x0014,
-            Self::Coordinates => 0x0010,
-            Self::HeartBeat => 0x0004,
-            Self::Logout => 0x0004,
-        }
-    }*/
-
     fn get_by_value(value: u8) -> RequestType {
         match value {
             0x01 => RequestType::Login,
@@ -33,54 +23,99 @@ impl RequestType {
 }
 
 #[derive(Debug)]
+struct RequestPacket {
+    request_type: RequestType,
+    payload_length: u8,
+    payload: Vec<u8>,
+}
+
+impl RequestPacket {
+    fn parse(data: &[u8]) -> Self {
+        let request_type: RequestType = RequestType::get_by_value(data.get(0).unwrap().to_owned());
+        let payload_length: u8 = data.get(2).unwrap().to_owned();
+        let payload: Vec<u8> = data.get(3..).unwrap().to_vec();
+
+        Self {
+            request_type,
+            payload_length,
+            payload,
+        }
+    }
+}
+
+#[derive(Debug)]
 struct LoginData {
     username: String,
     password: String,
 }
 
 impl LoginData {
-    fn get(data: &[u8]) -> Self {
-        let payload_length: usize =
-            format!("{}", data.get(1).expect("Payload Length is expected."))
-                .parse()
-                .unwrap();
-        println!("Login Data Length: {:?}", payload_length);
-        let credentials: &[u8] = data.get(2..).unwrap();
+    fn parse(payload_length: u8, credentials: &[u8]) -> Self {
+        let length: usize = format!("{}", payload_length).parse().unwrap();
 
-        if credentials.len() < payload_length {
+        if credentials.len() < length {
             panic!(
                 "Username and Password length must not be less than {}",
-                payload_length
+                length
             );
         }
-        let mut username: String = String::new();
-        let mut password: String = String::new();
+        let mut username: Vec<u8> = Vec::new();
+        let mut password: Vec<u8> = Vec::new();
+        let mut separator_flag: bool = false;
 
         for value in credentials {
-            let i: char = format!("{:x}", value).parse().unwrap();
-            println!("{}", i);
+            if value == &0 {
+                separator_flag = true;
+                continue;
+            }
+            if separator_flag {
+                password.push(value.to_owned());
+            } else {
+                username.push(value.to_owned());
+            }
         }
-        println!("{:x?}", data.get(2..));
+
         Self {
-            username: String::new(),
-            password: String::new(),
+            username: String::from_utf8(username).unwrap(),
+            password: String::from_utf8(password).unwrap(),
         }
     }
 }
 
+#[derive(Debug)]
+struct HeartBeatData {
+    client_id: u32,
+    timestamp: DateTime<Utc>,
+}
+
+impl HeartBeatData {
+    fn parse() -> Self {
+        todo!("HeartBeat")
+    }
+}
+
 fn main() -> Result<(), String> {
-    let socket = UdpSocket::bind("127.0.0.1:34256").unwrap();
+    let server_addr = "127.0.0.1:34256";
+    let socket = UdpSocket::bind(server_addr).unwrap();
+    println!("Server: {}", server_addr);
     loop {
         let mut buf = [0; 64];
         let (size, src) = socket.recv_from(&mut buf).unwrap();
         let filled = &mut buf[..size];
-        let request_type: RequestType = RequestType::get_by_value(filled[0]);
+        let request_packet: RequestPacket = RequestPacket::parse(filled);
+        println!("Request Packet: {:?}", request_packet);
 
-        match request_type {
+        match request_packet.request_type {
             RequestType::Login => {
-                let login_data = LoginData::get(&filled[1..]);
+                let login_data =
+                    LoginData::parse(request_packet.payload_length, &request_packet.payload);
                 println!("Login Data: {:?}", login_data);
                 println!("Login Request Type");
+            }
+            RequestType::HeartBeat => {
+                //let hb_data = LoginData::get(request_packet.payload_length, &request_packet.payload);
+                //println!("Login Data: {:?}", login_data);
+                println!("HeartBeat Request Type");
             }
             _ => {
                 panic!("Invalid Request Type");
@@ -89,8 +124,6 @@ fn main() -> Result<(), String> {
 
         println!("Size: {:?}", size);
         println!("Src: {:?}", src);
-        println!("Filled {:X?}", filled);
-        println!("Request Type: {:?}", request_type);
     }
     // Ok(())
 }
