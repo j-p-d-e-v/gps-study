@@ -1,4 +1,5 @@
 use chrono::{DateTime, Utc};
+use ieee_754::IEEE754;
 use std::net::UdpSocket;
 
 #[derive(Debug, PartialEq)]
@@ -25,14 +26,16 @@ impl RequestType {
 #[derive(Debug)]
 struct RequestPacket {
     request_type: RequestType,
-    payload_length: u8,
+    payload_length: usize,
     payload: Vec<u8>,
 }
 
 impl RequestPacket {
     fn parse(data: &[u8]) -> Self {
         let request_type: RequestType = RequestType::get_by_value(data.get(0).unwrap().to_owned());
-        let payload_length: u8 = data.get(2).unwrap().to_owned();
+        let payload_length: usize = format!("{}", data.get(2).unwrap().to_owned())
+            .parse()
+            .unwrap();
         let payload: Vec<u8> = data.get(3..).unwrap().to_vec();
 
         Self {
@@ -50,13 +53,11 @@ struct LoginData {
 }
 
 impl LoginData {
-    fn parse(payload_length: u8, credentials: &[u8]) -> Self {
-        let length: usize = format!("{}", payload_length).parse().unwrap();
-
-        if credentials.len() < length {
+    fn parse(payload_length: usize, credentials: &[u8]) -> Self {
+        if credentials.len() < payload_length {
             panic!(
                 "Username and Password length must not be less than {}",
-                length
+                payload_length
             );
         }
         let mut username: Vec<u8> = Vec::new();
@@ -89,11 +90,95 @@ struct HeartBeatData {
 }
 
 impl HeartBeatData {
-    fn parse() -> Self {
-        todo!("HeartBeat")
+    fn parse(payload_length: usize, data: &[u8]) -> Self {
+        if data.len() > payload_length {
+            panic!("Payload Length for heartbeat exceeded.")
+        }
+        let client_id_hex: Vec<String> = data.iter().map(|x| format!("{:x}", x)).collect();
+        let client_id: u32 = u32::from_str_radix(&client_id_hex.concat(), 16).unwrap();
+
+        Self {
+            client_id,
+            timestamp: Utc::now(),
+        }
     }
 }
 
+#[derive(Debug)]
+struct LogoutData {
+    client_id: u32,
+    timestamp: DateTime<Utc>,
+}
+
+impl LogoutData {
+    fn parse(payload_length: usize, data: &[u8]) -> Self {
+        if data.len() > payload_length {
+            panic!("Payload Length for logout exceeded.")
+        }
+
+        let client_id_hex: Vec<String> = data.iter().map(|x| format!("{:x}", x)).collect();
+        let client_id: u32 = u32::from_str_radix(&client_id_hex.concat(), 16).unwrap();
+
+        Self {
+            client_id,
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct CoordinatesData {
+    client_id: u32,
+    latitude: f64,
+    longitude: f64,
+    timestamp: DateTime<Utc>,
+}
+
+impl CoordinatesData {
+    fn parse(payload_length: usize, data: &[u8]) -> Self {
+        if data.len() < payload_length {
+            panic!("Data length must be greater or equal to payload length");
+        }
+        let client_id_str: &[u8] = data.get(0..4).unwrap();
+        let client_id_hex: Vec<String> = client_id_str.iter().map(|x| format!("{:x}", x)).collect();
+        let client_id: u32 = u32::from_str_radix(&client_id_hex.concat(), 16).unwrap();
+
+        let latitude_str: &[u8] = data.get(4..12).unwrap();
+        let longiture_str: &[u8] = data.get(12..20).unwrap();
+
+        println!("longitude String {:?}", longiture_str);
+
+        let lat_iee754: IEEE754 = IEEE754::new(
+            latitude_str
+                .iter()
+                .map(|x| x.to_owned() as u32)
+                .collect::<Vec<u32>>(),
+        );
+
+        let lat_value = lat_iee754.to_64bit().unwrap();
+        println!("Latitude Value: {}", lat_value);
+
+        let long_iee754: IEEE754 = IEEE754::new(
+            longiture_str
+                .iter()
+                .map(|x| x.to_owned() as u32)
+                .collect::<Vec<u32>>(),
+        );
+        let long_value = long_iee754.to_64bit().unwrap();
+        println!("longitude Value: {}", long_value);
+        Self {
+            client_id,
+            latitude: lat_value,
+            longitude: long_value,
+            timestamp: Utc::now(),
+        }
+    }
+}
+
+/* Notes: To be remove later
+ * printf "02 00 10 12 34 56 78 C0 52 AF BE 04 89 76 8E 40 66 33 4F 5C 29 C0 5C" | xxd -r -p > coordinates_packet.bin
+ * 02 00 10 12 34 56 78 C0 52 AF BE 04 89 76 8E 40 66 33 4F 5C 29 C0 5C
+ * */
 fn main() -> Result<(), String> {
     let server_addr = "127.0.0.1:34256";
     let socket = UdpSocket::bind(server_addr).unwrap();
@@ -113,9 +198,22 @@ fn main() -> Result<(), String> {
                 println!("Login Request Type");
             }
             RequestType::HeartBeat => {
-                //let hb_data = LoginData::get(request_packet.payload_length, &request_packet.payload);
-                //println!("Login Data: {:?}", login_data);
+                let heartbeat_data =
+                    HeartBeatData::parse(request_packet.payload_length, &request_packet.payload);
+                println!("Heartbeat Data: {:?}", heartbeat_data);
                 println!("HeartBeat Request Type");
+            }
+            RequestType::Logout => {
+                let logout_data =
+                    LogoutData::parse(request_packet.payload_length, &request_packet.payload);
+                println!("Logout Data: {:?}", logout_data);
+                println!("Logout Request Type");
+            }
+            RequestType::Coordinates => {
+                let coordinates_data =
+                    CoordinatesData::parse(request_packet.payload_length, &request_packet.payload);
+                println!("Coordinates Data: {:?}", coordinates_data);
+                println!("Coordinates Request Type");
             }
             _ => {
                 panic!("Invalid Request Type");
