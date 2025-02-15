@@ -1,29 +1,53 @@
+use crate::config::{Config, DatabaseConfig};
 use std::sync::LazyLock;
 use surrealdb::engine::remote::ws::{Client, Ws};
+use surrealdb::opt::auth::Root;
 use surrealdb::Surreal;
-
-static DB_INSTANCE: LazyLock<Surreal<Client>> = LazyLock::new(Surreal::init);
+pub static DB_INSTANCE: LazyLock<Surreal<Client>> = LazyLock::new(Surreal::init);
 
 #[derive(Debug)]
 pub struct Db {
-    instance: LazyLock<Surreal<Client>>,
+    pub client: Surreal<Client>,
 }
 
 impl Db {
-    pub async fn connect() -> Result<(), String> {
-        let address: String = String::from("127.0.0.1:8080");
-        DB_INSTANCE.connect::<Ws>(address).await.unwrap();
-        Ok(())
+    pub async fn connect() -> Result<Self, String> {
+        let config: Config = Config::load().await?;
+        let db_config: DatabaseConfig = config.database;
+        let client: Surreal<Client> = Surreal::init();
+        match client.connect::<Ws>(db_config.host).await {
+            Ok(_) => {
+                match client
+                    .signin(Root {
+                        username: &db_config.username,
+                        password: &db_config.password,
+                    })
+                    .await
+                {
+                    Ok(_) => match client
+                        .use_ns(db_config.namespace)
+                        .use_db(&db_config.database)
+                        .await
+                    {
+                        Ok(_) => Ok(Self { client }),
+                        Err(error) => Err(format!("database error: {:?}", error)),
+                    },
+                    Err(error) => Err(error.to_string()),
+                }
+            }
+            Err(error) => Err(format!("database error: {:?}", error)),
+        }
     }
 }
 
 #[cfg(test)]
 mod db_tests {
+
     use super::*;
 
     #[tokio::test]
     async fn test_connection() {
-        Db::connect().await.unwrap();
-        assert!(true);
+        let db = Db::connect().await;
+        assert!(db.is_ok(), "{:?}", db.err());
     }
 }

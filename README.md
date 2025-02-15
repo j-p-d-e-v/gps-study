@@ -11,6 +11,12 @@ cat login_packet.bin | nc -u 127.0.0.1 34256
 
 ```
 
+# Starting SurrealDB:
+
+```sh
+surreal start --user root --pass root --bind 0.0.0.0:8080 rocksdb:gps.db
+```
+
 # Notes:
 
 - Use mio library for UDP

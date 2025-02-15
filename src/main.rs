@@ -1,13 +1,15 @@
-use gps_tracker::actions::{Coordinates, Heartbeat, Login, Logout};
+use gps_tracker::actions::{Coordinates, Heartbeat, HeartbeatData, Login, Logout};
 use gps_tracker::{RequestPacket, RequestType};
 use std::net::UdpSocket;
-fn main() -> Result<(), String> {
+
+#[tokio::main]
+async fn main() -> Result<(), String> {
     let server_addr = "127.0.0.1:34256";
     let socket = UdpSocket::bind(server_addr).unwrap();
     println!("Server: {}", server_addr);
     loop {
         let mut buf = [0; 64];
-        let (size, _) = socket.recv_from(&mut buf).unwrap();
+        let (size, source_address) = socket.recv_from(&mut buf).unwrap();
         let filled = &mut buf[..size];
         match RequestPacket::parse(filled) {
             Ok(request_packet) => {
@@ -21,9 +23,12 @@ fn main() -> Result<(), String> {
                     }
                     RequestType::HeartBeat => {
                         let heartbeat_data = Heartbeat::parse(
+                            source_address.to_string(),
                             request_packet.payload_length,
                             &request_packet.payload,
-                        );
+                        )
+                        .await
+                        .unwrap();
                         println!("Heartbeat Data: {:?}", heartbeat_data);
                         println!("HeartBeat Request Type");
                     }
