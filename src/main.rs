@@ -1,12 +1,14 @@
-use gps_tracker::actions::{Coordinates, Heartbeat, HeartbeatData, Login, Logout};
+use gps_tracker::actions::{Coordinates, Heartbeat, Login, Logout};
+use gps_tracker::config::Config;
 use gps_tracker::{RequestPacket, RequestType};
 use std::net::UdpSocket;
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let server_addr = "127.0.0.1:34256";
-    let socket = UdpSocket::bind(server_addr).unwrap();
-    println!("Server: {}", server_addr);
+    let config = Config::load().await?;
+    let server_config = config.server;
+    println!("Server: {}", server_config.host);
+    let socket = UdpSocket::bind(server_config.host).unwrap();
     loop {
         let mut buf = [0; 64];
         let (size, source_address) = socket.recv_from(&mut buf).unwrap();
@@ -17,9 +19,12 @@ async fn main() -> Result<(), String> {
                 match request_packet.request_type {
                     RequestType::Login => {
                         let login_data =
-                            Login::parse(request_packet.payload_length, &request_packet.payload);
+                            Login::parse(request_packet.payload_length, &request_packet.payload)
+                                .await?;
+
                         println!("Login Data: {:?}", login_data);
-                        println!("Login Request Type");
+                        let user_data = Login::authenticate(login_data).await?;
+                        println!("User Data: {:?}", user_data);
                     }
                     RequestType::HeartBeat => {
                         let heartbeat_data = Heartbeat::parse(
@@ -27,24 +32,25 @@ async fn main() -> Result<(), String> {
                             request_packet.payload_length,
                             &request_packet.payload,
                         )
-                        .await
-                        .unwrap();
+                        .await?;
+                        let hb: Heartbeat = Heartbeat::new().await?;
+                        let heartbeat_data = hb.create(heartbeat_data).await?;
                         println!("Heartbeat Data: {:?}", heartbeat_data);
-                        println!("HeartBeat Request Type");
                     }
                     RequestType::Logout => {
                         let logout_data =
                             Logout::parse(request_packet.payload_length, &request_packet.payload);
                         println!("Logout Data: {:?}", logout_data);
-                        println!("Logout Request Type");
                     }
                     RequestType::Coordinates => {
                         let coordinates_data = Coordinates::parse(
                             request_packet.payload_length,
                             &request_packet.payload,
-                        );
+                        )
+                        .await?;
+                        let coordinates = Coordinates::new().await?;
+                        let coordinates_data = coordinates.create(coordinates_data).await?;
                         println!("Coordinates Data: {:?}", coordinates_data);
-                        println!("Coordinates Request Type");
                     }
                     _ => {
                         panic!("Invalid Request Type");

@@ -3,7 +3,6 @@ use std::sync::LazyLock;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::opt::auth::Root;
 use surrealdb::Surreal;
-pub static DB_INSTANCE: LazyLock<Surreal<Client>> = LazyLock::new(Surreal::init);
 
 #[derive(Debug)]
 pub struct Db {

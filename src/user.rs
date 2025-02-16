@@ -50,7 +50,7 @@ impl User {
                 
             }
             Err(error) => {            
-                        Err(format!("user.get_by_client_id  error: {:?}",error))    
+                Err(format!("user.get_by_client_id  error: {:?}",error))    
             }
         }
     }

@@ -4,6 +4,15 @@ This is for studying packets, and UDP using Rust Programming Language. The app i
 
 # Sending Packets
 
+```
+printf "01 00 14 72 6F 6F 74 00 00 00 00 00 00 6E 6F 74 73 65 63 75 72 65 70 61 73 73 77 6F 72 64" | xxd -r -p > login_packet_1.bin
+printf "03 00 04 00 00 6B 43" | xxd -r -p > heartbeat_packet_1.bin
+
+14.650221904817329, 121.04681722724743
+printf "02 00 04 00 00 6B 43 40 2D 4C F3 81 7F 57 D2 40 5E 42 FE CE 09 D7 FB" | xxd -r -p > coordinates_packet_1.bin
+
+```
+
 ## Login Packets
 
 ```sh
@@ -20,3 +29,5 @@ surreal start --user root --pass root --bind 0.0.0.0:8080 rocksdb:gps.db
 # Notes:
 
 - Use mio library for UDP
+- Create a library for this https://decimal.info/decimal-to-hexadecimal/how-to-convert-27459-decimal-to-hexadecimal.html
+- create tools to generate payloads easily

@@ -2,6 +2,11 @@ use serde::Deserialize;
 use std::{fs::File, io::Read};
 
 #[derive(Debug, Deserialize)]
+pub struct ServerConfig {
+    pub host: String,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct DatabaseConfig {
     pub username: String,
     pub password: String,
@@ -13,6 +18,7 @@ pub struct DatabaseConfig {
 #[derive(Debug, Deserialize)]
 pub struct Config {
     pub database: DatabaseConfig,
+    pub server: ServerConfig,
 }
 
 impl Config {
