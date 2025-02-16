@@ -31,3 +31,6 @@ surreal start --user root --pass root --bind 0.0.0.0:8080 rocksdb:gps.db
 - Use mio library for UDP
 - Create a library for this https://decimal.info/decimal-to-hexadecimal/how-to-convert-27459-decimal-to-hexadecimal.html
 - create tools to generate payloads easily
+- create a converter from floating & decimal to hexadecimal with given byte size.
+- make the server not exit for errors.
+- use logging instead of printing
