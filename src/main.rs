@@ -1,64 +1,62 @@
-use gps_tracker::actions::{Coordinates, Heartbeat, Login, Logout};
-use gps_tracker::config::Config;
-use gps_tracker::{RequestPacket, RequestType};
-use std::net::UdpSocket;
+use gps_tracker::udp_server::UdpServer;
 
 #[tokio::main]
 async fn main() -> Result<(), String> {
-    let config = Config::load().await?;
-    let server_config = config.server;
-    println!("Server: {}", server_config.host);
-    let socket = UdpSocket::bind(server_config.host).unwrap();
-    loop {
-        let mut buf = [0; 64];
-        let (size, source_address) = socket.recv_from(&mut buf).unwrap();
-        let filled = &mut buf[..size];
-        match RequestPacket::parse(filled) {
-            Ok(request_packet) => {
-                println!("Request Packet: {:?}", request_packet);
-                match request_packet.request_type {
-                    RequestType::Login => {
-                        let login_data =
-                            Login::parse(request_packet.payload_length, &request_packet.payload)
-                                .await?;
+    // Get input
+    let mut service_input: String = String::new();
 
-                        println!("Login Data: {:?}", login_data);
-                        let user_data = Login::authenticate(login_data).await?;
-                        println!("User Data: {:?}", user_data);
-                    }
-                    RequestType::HeartBeat => {
-                        let heartbeat_data = Heartbeat::parse(
-                            source_address.to_string(),
-                            request_packet.payload_length,
-                            &request_packet.payload,
-                        )
-                        .await?;
-                        let hb: Heartbeat = Heartbeat::new().await?;
-                        let heartbeat_data = hb.create(heartbeat_data).await?;
-                        println!("Heartbeat Data: {:?}", heartbeat_data);
-                    }
-                    RequestType::Logout => {
-                        let logout_data =
-                            Logout::parse(request_packet.payload_length, &request_packet.payload);
-                        println!("Logout Data: {:?}", logout_data);
-                    }
-                    RequestType::Coordinates => {
-                        let coordinates_data = Coordinates::parse(
-                            request_packet.payload_length,
-                            &request_packet.payload,
-                        )
-                        .await?;
-                        let coordinates = Coordinates::new().await?;
-                        let coordinates_data = coordinates.create(coordinates_data).await?;
-                        println!("Coordinates Data: {:?}", coordinates_data);
-                    }
-                    _ => {
-                        panic!("Invalid Request Type");
-                    }
-                }
-            }
-            Err(error) => panic!("{:?}", error),
+    loop {
+        // Main Services
+        println!("Choose Services:");
+        println!("1. Payload Generator");
+        println!("2. Launch UDP Server");
+        println!("3. Launch UDP Client(For Simulation) - Soon!");
+        if let Err(error) = std::io::stdin().read_line(&mut service_input) {
+            eprintln!("Input Error: {:?}", error);
+        } else {
+            break;
         }
     }
-    // Ok(())
+    match service_input.trim().parse::<u8>() {
+        Ok(input) => {
+            match input {
+                1 => {
+                    println!("Choose Generator");
+                    let mut payload_generator: String = String::new();
+                    loop {
+                        println!("1. Login Payload");
+                        println!("2. Heartbeat Payload");
+                        println!("3. Coordinates Payload");
+                        if let Err(error) = std::io::stdin().read_line(&mut payload_generator) {
+                            eprintln!("Input Error: {:?}", error);
+                        } else {
+                            break;
+                        }
+                    }
+                    match payload_generator.trim().parse::<u8>() {
+                        Ok(input) => match input {
+                            1 => println!("This is login payload generator"),
+                            2 => println!("This is heartbeat payload generator"),
+                            3 => println!("This is coordinates payload generator"),
+                            _ => panic!("unable to determine generator"),
+                        },
+                        Err(error) => {
+                            panic!("{:?}", error);
+                        }
+                    }
+                }
+                2 => {
+                    // Launch UDP Server
+                    UdpServer::launch().await?;
+                }
+                _ => {
+                    panic!("unable to determine service");
+                }
+            }
+        }
+        Err(error) => {
+            panic!("{:?}", error.to_string())
+        }
+    }
+    Ok(())
 }

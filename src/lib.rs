@@ -2,6 +2,7 @@ pub mod actions;
 pub mod config;
 pub mod db;
 pub mod request;
+pub mod udp_server;
 pub mod user;
 pub mod validation;
 
