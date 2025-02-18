@@ -10,6 +10,26 @@ pub enum RequestType {
 }
 
 impl RequestType {
+    pub fn to_value(self) -> u8 {
+        match self {
+            Self::Login => 0x01,
+            Self::Coordinates => 0x02,
+            Self::HeartBeat => 0x03,
+            Self::Logout => 0x04,
+            Self::Invalid => 0x00,
+        }
+    }
+
+    pub fn get_length(self) -> u8 {
+        match self {
+            Self::Login => 0x0014,
+            Self::Coordinates => 0x0004,
+            Self::HeartBeat => 0x0004,
+            Self::Logout => 0x00,
+            Self::Invalid => 0x00,
+        }
+    }
+
     pub fn get_by_value(value: u8) -> RequestType {
         match value {
             0x01 => RequestType::Login,

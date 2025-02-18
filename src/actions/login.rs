@@ -1,3 +1,5 @@
+use crate::payload::Payload;
+use crate::request::RequestType;
 use crate::user::{User, UserData};
 use crate::validation::ValidationError;
 
@@ -13,9 +15,25 @@ pub struct Login {
 ///
 /// Example:
 /// ```
-/// 01 00 14 72 6F 6F 74 00 00 00 00 00 00 6E 6F 74 73 65 63 75 72 65 70 61 73 73 77 6F 72 64
+/// 01 00 14 72 6F 6F 74 00 6E 6F 74 73 65 63 75 72 65 70 61 73 73 77 6F 72 64
 /// ```
 impl Login {
+    /// Generate Payload
+    pub async fn generate_payload(username: String, password: String) -> Result<String, String> {
+        let hex_username: String = hex::encode_upper(username);
+        let hex_password: String = hex::encode(password);
+        let request_type = format!("{:02x}", RequestType::Login.to_value());
+        let payload_length = format!("{:04x}", RequestType::Login.get_length());
+
+        Ok(Payload::apply_spacing(
+            format!(
+                "{}{}{}00{}",
+                request_type, payload_length, hex_username, hex_password
+            )
+            .as_str(),
+        ))
+    }
+
     /// Parse the login packet
     pub async fn parse(payload_length: usize, credentials: &[u8]) -> Result<Self, String> {
         if credentials.len() < payload_length {
@@ -56,6 +74,17 @@ impl Login {
 #[cfg(test)]
 mod test_login {
     use super::*;
+
+    #[tokio::test]
+    async fn test_payload_generator() {
+        let username = "root".to_string();
+        let password = "notsecurepassword".to_string();
+        let test_value =
+            "01 00 14 72 6F 6F 74 00 6E 6F 74 73 65 63 75 72 65 70 61 73 73 77 6F 72 64";
+        let payload = Login::generate_payload(username, password).await;
+        assert!(payload.is_ok(), "{:?}", payload.err());
+        assert_eq!(test_value.to_string(), payload.unwrap());
+    }
 
     #[tokio::test]
     async fn test_authentication() {
