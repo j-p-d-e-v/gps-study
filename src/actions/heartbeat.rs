@@ -1,4 +1,6 @@
 use crate::db::Db;
+use crate::payload::Payload;
+use crate::request::RequestType;
 use crate::user::{User, UserData};
 use crate::validation::ValidationError;
 use chrono::Utc;
@@ -25,10 +27,20 @@ pub struct Heartbeat {
 ///
 /// Example:
 /// ```
-/// 03 00 04 00 00 6B 43
+/// 03 00 04 00 00 5F F4
 /// ```
 
 impl Heartbeat {
+    /// Generate Payload
+    pub async fn generate_payload(client_id: u32) -> Result<String, String> {
+        let hex_client_id: String = format!("{:08x}", client_id);
+        let request_type = format!("{:02x}", RequestType::HeartBeat.to_value());
+        let payload_length = format!("{:04x}", RequestType::HeartBeat.get_length());
+
+        Ok(Payload::apply_spacing(
+            format!("{}{}{}", request_type, payload_length, hex_client_id).as_str(),
+        ))
+    }
     /// Initializes Heartbeat instance including database connections.
     pub async fn new() -> Result<Self, String> {
         let db = Db::connect().await?;
@@ -90,6 +102,19 @@ impl Heartbeat {
 mod test_heartbeat {
     use super::*;
     use std::str::FromStr;
+
+    #[tokio::test]
+    pub async fn test_generate_payload() {
+        let client_id: u32 = 24564;
+        let payload = Heartbeat::generate_payload(client_id).await;
+        let test_value_hex = "03 00 04 00 00 5F F4";
+        assert!(payload.is_ok(), "{:?}", payload.err());
+        assert_eq!(test_value_hex, payload.clone().unwrap().as_str());
+
+        let payload = Payload::to_binary(payload.unwrap().as_str());
+        assert!(payload.is_ok(), "{:?}", payload.err());
+    }
+
     #[tokio::test]
     pub async fn test_create() {
         let hb = Heartbeat::new().await;

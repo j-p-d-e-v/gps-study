@@ -84,6 +84,13 @@ mod test_login {
         let payload = Login::generate_payload(username, password).await;
         assert!(payload.is_ok(), "{:?}", payload.err());
         assert_eq!(test_value.to_string(), payload.unwrap());
+        let test_value_binary: &[u8] = &[
+            1, 0, 20, 114, 111, 111, 116, 0, 110, 111, 116, 115, 101, 99, 117, 114, 101, 112, 97,
+            115, 115, 119, 111, 114, 100,
+        ];
+        let payload: Result<Vec<u8>, String> = Payload::to_binary(test_value);
+        assert!(payload.is_ok(), "{:?}", payload.err());
+        assert_eq!(test_value_binary, payload.unwrap());
     }
 
     #[tokio::test]
