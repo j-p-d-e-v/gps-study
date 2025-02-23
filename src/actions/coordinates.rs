@@ -1,4 +1,6 @@
 use crate::db::Db;
+use crate::payload::Payload;
+use crate::request::RequestType;
 use crate::user::{User, UserData};
 use crate::validation::ValidationError;
 use chrono::Utc;
@@ -15,13 +17,15 @@ pub struct CoordinatesData {
     timestamp: Datetime,
 }
 /// Format:
-/// Type: 0x03
-/// Payload Length: 0x0004 (4 bytes or greater for client id)
-/// Payload: <client_id> Example: 24564
-///
+/// Type: 0x02
+/// Payload Length: 0x0010
+/// Payload Format:
+/// - client_id = 4 bytes
+/// - latitude = 8 bytes
+/// - longitude = 8 bytes
 /// Example:
 /// ```
-/// 02 00 04 00 00 6B 43 40 2D 4C F3 81 7F 57 D2 40 5E 42 FE CE 09 D7 FB
+/// 03 00 04 00 00 5F F4 40 24 00 01 4F 8B 58 8E C0 5F C0 00 04 31 BD E8
 /// ```
 
 #[derive(Debug)]
@@ -34,6 +38,35 @@ impl Coordinates {
     pub async fn new() -> Result<Self, String> {
         let db = Db::connect().await?;
         Ok(Self { db })
+    }
+
+    /// Generate Payload
+    pub async fn generate_payload(
+        client_id: u32,
+        latitude: f64,
+        longitude: f64,
+    ) -> Result<String, String> {
+        let hex_client_id: String = format!("{:08x}", client_id);
+        let request_type = format!("{:02x}", RequestType::HeartBeat.to_value());
+        let payload_length = format!("{:04x}", RequestType::HeartBeat.get_length());
+        let latitude_hex: String = if let Ok(v) = IEEE754::to_64bit_hex(latitude) {
+            v
+        } else {
+            return Err("unable to parse latitude and convert to hex".to_string());
+        };
+        let longitude_hex: String = if let Ok(v) = IEEE754::to_64bit_hex(longitude) {
+            v
+        } else {
+            return Err("unable to parse longtitude and convert to hex".to_string());
+        };
+
+        Ok(Payload::apply_spacing(
+            format!(
+                "{}{}{}{}{}",
+                request_type, payload_length, hex_client_id, latitude_hex, longitude_hex
+            )
+            .as_str(),
+        ))
     }
 
     pub async fn parse(payload_length: usize, data: &[u8]) -> Result<CoordinatesData, String> {
@@ -61,15 +94,15 @@ impl Coordinates {
 
                         match data.get(4..12) {
                             Some(value) => {
-                                let ieee_754: IEEE754 = IEEE754::new(
+                                let latitude: Result<f64, _> = IEEE754::to_64bit_float(
                                     value
                                         .iter()
                                         .map(|x| x.to_owned() as u32)
                                         .collect::<Vec<u32>>(),
                                 );
-                                match ieee_754.to_64bit() {
-                                    Ok(latitude) => {
-                                        coordinates_data.latitude = latitude;
+                                match latitude {
+                                    Ok(v) => {
+                                        coordinates_data.latitude = v;
                                         println!("Latitude: {}", coordinates_data.latitude);
                                     }
                                     Err(_) => {
@@ -86,15 +119,15 @@ impl Coordinates {
 
                         match data.get(12..20) {
                             Some(value) => {
-                                let ieee_754: IEEE754 = IEEE754::new(
+                                let longitude: Result<f64, _> = IEEE754::to_64bit_float(
                                     value
                                         .iter()
                                         .map(|x| x.to_owned() as u32)
                                         .collect::<Vec<u32>>(),
                                 );
-                                match ieee_754.to_64bit() {
-                                    Ok(longitude) => {
-                                        coordinates_data.longitude = longitude;
+                                match longitude {
+                                    Ok(v) => {
+                                        coordinates_data.longitude = v;
                                         println!("Longitude: {}", coordinates_data.longitude);
                                     }
                                     Err(_) => {
@@ -143,9 +176,24 @@ impl Coordinates {
 }
 
 #[cfg(test)]
-mod test_heartbeat {
+mod test_coordinates {
     use super::*;
     use std::str::FromStr;
+
+    #[tokio::test]
+    pub async fn test_generate_payload() {
+        let client_id: u32 = 24564;
+        let latitude: f64 = 10.00001;
+        let longitude: f64 = -127.000001;
+        let payload = Coordinates::generate_payload(client_id, latitude, longitude).await;
+        println!("{:#?}", payload);
+        let test_value_hex = "03 00 04 00 00 5F F4 40 24 00 01 4F 8B 58 8E C0 5F C0 00 04 31 BD E8";
+        assert!(payload.is_ok(), "{:?}", payload.err());
+        assert_eq!(test_value_hex, payload.clone().unwrap().as_str());
+
+        let payload = Payload::to_binary(payload.unwrap().as_str());
+        assert!(payload.is_ok(), "{:?}", payload.err());
+    }
 
     #[tokio::test]
     pub async fn test_create() {

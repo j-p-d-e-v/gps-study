@@ -1,5 +1,4 @@
 use crate::config::{Config, DatabaseConfig};
-use std::sync::LazyLock;
 use surrealdb::engine::remote::ws::{Client, Ws};
 use surrealdb::opt::auth::Root;
 use surrealdb::Surreal;

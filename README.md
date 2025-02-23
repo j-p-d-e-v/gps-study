@@ -15,7 +15,7 @@ printf "02 00 04 00 00 6B 43 40 2D 4C F3 81 7F 57 D2 40 5E 42 FE CE 09 D7 FB" | 
 
 ## Login Packets
 
-```sh
+ ``sh
 cat login_packet.bin | nc -u 127.0.0.1 34256
 
 ```
@@ -29,8 +29,7 @@ surreal start --user root --pass root --bind 0.0.0.0:8080 rocksdb:gps.db
 # Notes:
 
 - Use mio library for UDP
-- Create a library for this https://decimal.info/decimal-to-hexadecimal/how-to-convert-27459-decimal-to-hexadecimal.html
 - create tools to generate payloads easily
-- create a converter from floating & decimal to hexadecimal with given byte size.
 - make the server not exit for errors.
 - use logging instead of printing
+- check if xxd is need to send data or I can just use the generated payload instead.
