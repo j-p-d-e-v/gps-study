@@ -25,7 +25,7 @@ impl RequestType {
             Self::Login => 0x0014,
             Self::Coordinates => 0x0004,
             Self::HeartBeat => 0x0004,
-            Self::Logout => 0x00,
+            Self::Logout => 0x0004,
             Self::Invalid => 0x00,
         }
     }

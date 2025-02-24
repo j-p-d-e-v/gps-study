@@ -46,7 +46,8 @@ impl UdpServer {
                             let logout_data = Logout::parse(
                                 request_packet.payload_length,
                                 &request_packet.payload,
-                            );
+                            )
+                            .await?;
                             println!("Logout Data: {:?}", logout_data);
                         }
                         RequestType::Coordinates => {
