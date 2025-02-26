@@ -1,0 +1,19 @@
+body {
+	background-color: #fff !important;
+	margin: 3px;
+	width: 100%;
+	height: 100%;
+}
+
+#map {
+	border: 1px solid #cecece;
+	width: 99vw;
+	height: 94vh;
+}
+
+.ol-mouse-position {
+	background-color: #000;
+	color: #fff;
+	padding: 10px;
+	font-size: 17px;
+}
