@@ -22,8 +22,13 @@ pub struct Config {
 }
 
 impl Config {
-    pub async fn load() -> Result<Config, String> {
-        match File::options().read(true).open("config.toml") {
+    pub async fn load(file_path: Option<String>) -> Result<Config, String> {
+        let file_path: String = if let Some(value) = file_path {
+            value
+        } else {
+            "config.toml".to_string()
+        };
+        match File::options().read(true).open(file_path) {
             Ok(mut file) => {
                 let mut content = String::new();
                 if let Err(error) = file.read_to_string(&mut content) {

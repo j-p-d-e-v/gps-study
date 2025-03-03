@@ -10,7 +10,7 @@ pub struct Db {
 
 impl Db {
     pub async fn connect() -> Result<Self, String> {
-        let config: Config = Config::load().await?;
+        let config: Config = Config::load(None).await?;
         let db_config: DatabaseConfig = config.database;
         let client: Surreal<Client> = Surreal::init();
         match client.connect::<Ws>(db_config.host).await {

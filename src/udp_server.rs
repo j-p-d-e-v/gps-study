@@ -8,7 +8,7 @@ pub struct UdpServer;
 
 impl UdpServer {
     pub async fn launch() -> Result<(), String> {
-        let config: Config = Config::load().await?;
+        let config: Config = Config::load(None).await?;
         let server_config = config.server;
         println!("Server: {}", server_config.host);
         let socket = UdpSocket::bind(server_config.host).unwrap();

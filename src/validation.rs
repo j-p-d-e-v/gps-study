@@ -16,6 +16,12 @@ pub enum ValidationError {
     InvalidRequestPacketPayload,
     UnableToParseRequestPayloadLength,
 }
+
+impl ValidationError {
+    pub fn to_hex() -> String {
+        todo!("not implemented");
+    }
+}
 impl std::fmt::Display for ValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let message = match self {

@@ -3,6 +3,7 @@ pub mod config;
 pub mod db;
 pub mod payload;
 pub mod request;
+pub mod response;
 pub mod udp_server;
 pub mod user;
 pub mod validation;

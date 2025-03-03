@@ -6,9 +6,11 @@ body {
 }
 
 #map {
-	border: 1px solid #cecece;
-	width: 99vw;
-	height: 94vh;
+	border: 2px solid #cecece;
+	width: 98vw;
+	height: 85vh;
+	margin-left: auto;
+	margin-right: auto;
 }
 
 .ol-mouse-position {
@@ -16,4 +18,13 @@ body {
 	color: #fff;
 	padding: 10px;
 	font-size: 17px;
+}
+
+input {
+	border: 1px solid #cecece;
+	padding: 10px;
+}
+div {
+	font-size: 16px;
+	font-family: Arial;
 }

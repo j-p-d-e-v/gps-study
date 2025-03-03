@@ -34,6 +34,10 @@ impl Login {
         ))
     }
 
+    pub async fn generate_response() -> Result<String, String> {
+        todo!("not implemented");
+    }
+
     /// Parse the login packet
     pub async fn parse(payload_length: usize, credentials: &[u8]) -> Result<Self, String> {
         if credentials.len() < payload_length {

@@ -1,0 +1,12 @@
+[package]
+name = "client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.43.0", features = ["rt-multi-thread", "macros"] }
+toml = "0.8.20"
+serde = { version = "1.0.217", features = ["derive"] }
+serde_json = { version = "1.0.138" }
+chrono = "0.4.40"
+gps-tracker = { path = "../" }

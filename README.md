@@ -32,4 +32,4 @@ surreal start --user root --pass root --bind 0.0.0.0:8080 rocksdb:gps.db
 - create tools to generate payloads easily
 - make the server not exit for errors.
 - use logging instead of printing
-- check if xxd is need to send data or I can just use the generated payload instead.
+- Response Type for UDP Client
