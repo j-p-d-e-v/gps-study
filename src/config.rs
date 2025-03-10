@@ -1,12 +1,12 @@
 use serde::Deserialize;
 use std::{fs::File, io::Read};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     pub host: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct DatabaseConfig {
     pub username: String,
     pub password: String,
@@ -15,7 +15,7 @@ pub struct DatabaseConfig {
     pub database: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub database: DatabaseConfig,
     pub server: ServerConfig,
@@ -47,6 +47,6 @@ impl Config {
 
 #[tokio::test]
 async fn test_config_load() {
-    let config = Config::load().await;
+    let config = Config::load(None).await;
     assert!(config.is_ok());
 }
