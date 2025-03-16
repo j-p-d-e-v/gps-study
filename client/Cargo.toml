@@ -1,5 +1,5 @@
 [package]
-name = "client"
+name = "gps-tracker-client"
 version = "0.1.0"
 edition = "2021"
 
@@ -10,3 +10,4 @@ serde = { version = "1.0.217", features = ["derive"] }
 serde_json = { version = "1.0.138" }
 chrono = "0.4.40"
 gps-tracker = { path = "../" }
+clap = { version = "4.5.32", features = ["derive"] }

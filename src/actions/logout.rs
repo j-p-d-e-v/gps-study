@@ -1,6 +1,7 @@
 use crate::db::Db;
 use crate::payload::Payload;
 use crate::request::RequestType;
+use crate::response::ResponseType;
 use crate::validation::ValidationError;
 
 #[derive(Debug)]
@@ -28,6 +29,21 @@ impl Logout {
             format!("{}{}{}", request_type, payload_length, hex_client_id).as_str(),
         ))
     }
+
+    pub async fn generate_response(client_id: String, is_error: bool) -> Result<String, String> {
+        let hex_client_id: String = hex::encode_upper(client_id);
+        let request_type = format!("{:02x}", RequestType::Logout.to_value());
+        let response_status = if is_error {
+            ResponseType::Error.to_value()
+        } else {
+            ResponseType::Success.to_value()
+        };
+        let with_spacing = Payload::apply_spacing(
+            format!("{}{:02x}{}", request_type, response_status, hex_client_id).as_str(),
+        );
+        Ok(with_spacing)
+    }
+
     /// Initializes Heartbeat instance including database connections.
     pub async fn new() -> Result<Self, String> {
         let db = Db::connect().await?;

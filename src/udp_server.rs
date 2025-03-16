@@ -105,12 +105,28 @@ impl UdpServer {
                             }
                         }
                         RequestType::Logout => {
-                            let logout_data = Logout::parse(
+                            let client_id = Logout::parse(
                                 request_packet.payload_length,
                                 &request_packet.payload,
                             )
                             .await?;
-                            println!("Logout Data: {:?}", logout_data);
+                            println!("Logout Data: {:?}", client_id);
+
+                            let logout = Logout::new().await?;
+                            let response_data = match logout.logout(client_id.clone()).await {
+                                Ok(_) => {
+                                    Logout::generate_response(client_id.to_string(), false).await?
+                                }
+                                Err(error) => {
+                                    eprintln!("{:?}", error);
+                                    Logout::generate_response(client_id.to_string(), true).await?
+                                }
+                            };
+                            if let Err(error) =
+                                Self::respond(&socket, source_address, response_data.as_str()).await
+                            {
+                                eprint!("LOGOUT RESPONSE ERROR: {}", error);
+                            }
                         }
                         RequestType::Coordinates => {
                             let coordinates_data = Coordinates::parse(
