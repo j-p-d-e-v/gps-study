@@ -1,13 +1,29 @@
 use crate::actions::{Coordinates, Heartbeat, Login, Logout};
 use crate::config::Config;
 use crate::payload::Payload;
+use crate::user::User;
 use crate::{RequestPacket, RequestType};
-use std::net::UdpSocket;
+use std::net::{SocketAddr, UdpSocket};
 
 #[derive(Debug)]
 pub struct UdpServer;
 
 impl UdpServer {
+    pub async fn respond(
+        socket: &UdpSocket,
+        source_address: SocketAddr,
+        response_data: &str,
+    ) -> Result<(), String> {
+        let response_binary = Payload::to_binary(response_data)?;
+        println!("Binary Data: {:?}", response_binary);
+        if let Err(error) = socket.send_to(&response_binary, source_address) {
+            return Err(format!(
+                "unable to send login response, reason: {}",
+                error.to_string()
+            ));
+        }
+        Ok(())
+    }
     pub async fn launch() -> Result<(), String> {
         let config: Config = Config::load(None).await?;
         let server_config = config.server;
@@ -30,40 +46,21 @@ impl UdpServer {
                             .await?;
 
                             println!("Login Data: {:?}", login_data);
-                            let mut response_data: String = String::new();
-                            match Login::authenticate(login_data).await {
+                            let response_data: String = match Login::authenticate(login_data).await
+                            {
                                 Ok(user_data) => {
-                                    response_data = Login::generate_response(
-                                        user_data.client_id.to_string(),
-                                        false,
-                                    )
-                                    .await?;
-                                    println!("User Data: {:?}", user_data);
-                                    println!("Reponse Data: {:?}", response_data);
-                                    println!("Source Address: {:?}", source_address);
+                                    Login::generate_response(user_data.client_id.to_string(), false)
+                                        .await?
                                 }
                                 Err(error) => {
-                                    response_data =
-                                        Login::generate_response("0".to_string(), true).await?;
                                     eprintln!("{}", error);
+                                    Login::generate_response("0".to_string(), true).await?
                                 }
-                            }
-
-                            match socket.connect(source_address) {
-                                Ok(_) => {
-                                    let response_binary =
-                                        Payload::to_binary(response_data.as_str())?;
-                                    println!("Binary Data: {:?}", response_binary);
-                                    if let Err(error) = socket.send(&response_binary) {
-                                        eprintln!(
-                                            "unable to send login response, reason: {}",
-                                            error.to_string()
-                                        );
-                                    }
-                                }
-                                Err(error) => {
-                                    eprintln!("login send connect error {}", error.to_string());
-                                }
+                            };
+                            if let Err(error) =
+                                Self::respond(&socket, source_address, response_data.as_str()).await
+                            {
+                                eprint!("LOGIN RESPONSE ERROR: {}", error);
                             }
                         }
                         RequestType::HeartBeat => {
@@ -73,9 +70,39 @@ impl UdpServer {
                                 &request_packet.payload,
                             )
                             .await?;
-                            let hb: Heartbeat = Heartbeat::new().await?;
-                            let heartbeat_data = hb.create(heartbeat_data).await?;
+
                             println!("Heartbeat Data: {:?}", heartbeat_data);
+                            let hb: Heartbeat = Heartbeat::new().await?;
+                            let response_data: String = match hb.create(heartbeat_data).await {
+                                Ok(hb_data) => {
+                                    let user = User::new().await?;
+                                    match user.get_by_id(hb_data.user).await {
+                                        Ok(user_data) => {
+                                            Heartbeat::generate_response(
+                                                user_data.client_id.to_string(),
+                                                false,
+                                            )
+                                            .await?
+                                        }
+                                        Err(error) => {
+                                            eprintln!("HEARTBEAT ERROR: {}", error);
+                                            Heartbeat::generate_response(
+                                                "000000000".to_string(),
+                                                true,
+                                            )
+                                            .await?
+                                        }
+                                    }
+                                }
+                                Err(error) => {
+                                    return Err(format!("{:?}", error));
+                                }
+                            };
+                            if let Err(error) =
+                                Self::respond(&socket, source_address, response_data.as_str()).await
+                            {
+                                eprint!("HEART BEAT RESPONSE ERROR: {}", error);
+                            }
                         }
                         RequestType::Logout => {
                             let logout_data = Logout::parse(

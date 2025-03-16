@@ -1,6 +1,7 @@
 use crate::db::Db;
 use crate::payload::Payload;
 use crate::request::RequestType;
+use crate::response::ResponseType;
 use crate::user::{User, UserData};
 use crate::validation::ValidationError;
 use chrono::Utc;
@@ -12,8 +13,8 @@ use surrealdb::RecordId;
 pub struct HeartbeatData {
     pub timestamp: Datetime,
     pub id: Option<RecordId>,
-    pub source_address: Option<String>,
-    pub user: Option<RecordId>,
+    pub source_address: String,
+    pub user: RecordId,
 }
 
 #[derive(Debug)]
@@ -41,6 +42,22 @@ impl Heartbeat {
             format!("{}{}{}", request_type, payload_length, hex_client_id).as_str(),
         ))
     }
+
+    pub async fn generate_response(client_id: String, is_error: bool) -> Result<String, String> {
+        let hex_client_id: String = hex::encode_upper(client_id);
+        println!("Hex Client Id: {}", hex_client_id);
+        let request_type = format!("{:02x}", RequestType::HeartBeat.to_value());
+        let response_status = if is_error {
+            ResponseType::Error.to_value()
+        } else {
+            ResponseType::Success.to_value()
+        };
+        let with_spacing = Payload::apply_spacing(
+            format!("{}{:02x}{}", request_type, response_status, hex_client_id).as_str(),
+        );
+        Ok(with_spacing)
+    }
+
     /// Initializes Heartbeat instance including database connections.
     pub async fn new() -> Result<Self, String> {
         let db = Db::connect().await?;
@@ -62,12 +79,16 @@ impl Heartbeat {
             Ok(client_id) => {
                 let user: User = User::new().await?;
                 let user_data: UserData = user.get_by_client_id(client_id).await?;
-                Ok(HeartbeatData {
-                    source_address: Some(source_address),
-                    id: None,
-                    user: user_data.id,
-                    timestamp: Datetime::from(Utc::now()),
-                })
+                if let Some(user_id) = user_data.id {
+                    Ok(HeartbeatData {
+                        source_address,
+                        id: None,
+                        user: user_id,
+                        timestamp: Datetime::from(Utc::now()),
+                    })
+                } else {
+                    return Err(ValidationError::InvalidUserId.to_string());
+                }
             }
             Err(_) => Err(ValidationError::InvalidClientId.to_string()),
         }

@@ -15,6 +15,7 @@ pub enum ValidationError {
     InvalidRequestPacketPayloadLength,
     InvalidRequestPacketPayload,
     UnableToParseRequestPayloadLength,
+    InvalidUserId,
 }
 
 impl ValidationError {
@@ -44,6 +45,7 @@ impl std::fmt::Display for ValidationError {
             ValidationError::UnableToParseRequestPayloadLength => {
                 "Unable to parse request payload length"
             }
+            Self::InvalidUserId => "Invalid UserId",
         };
         write!(f, "{}", message)
     }
