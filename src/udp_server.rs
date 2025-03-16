@@ -74,9 +74,9 @@ impl UdpServer {
                             println!("Heartbeat Data: {:?}", heartbeat_data);
                             let hb: Heartbeat = Heartbeat::new().await?;
                             let response_data: String = match hb.create(heartbeat_data).await {
-                                Ok(hb_data) => {
+                                Ok(data) => {
                                     let user = User::new().await?;
-                                    match user.get_by_id(hb_data.user).await {
+                                    match user.get_by_id(data.user).await {
                                         Ok(user_data) => {
                                             Heartbeat::generate_response(
                                                 user_data.client_id.to_string(),
@@ -121,6 +121,37 @@ impl UdpServer {
                             let coordinates = Coordinates::new().await?;
                             let coordinates_data = coordinates.create(coordinates_data).await?;
                             println!("Coordinates Data: {:?}", coordinates_data);
+                            let response_data: String =
+                                match coordinates.create(coordinates_data).await {
+                                    Ok(data) => {
+                                        let user = User::new().await?;
+                                        match user.get_by_id(data.user).await {
+                                            Ok(user_data) => {
+                                                Coordinates::generate_response(
+                                                    user_data.client_id.to_string(),
+                                                    false,
+                                                )
+                                                .await?
+                                            }
+                                            Err(error) => {
+                                                eprintln!("COORDINATES ERROR: {}", error);
+                                                Coordinates::generate_response(
+                                                    "000000000".to_string(),
+                                                    true,
+                                                )
+                                                .await?
+                                            }
+                                        }
+                                    }
+                                    Err(error) => {
+                                        return Err(format!("{:?}", error));
+                                    }
+                                };
+                            if let Err(error) =
+                                Self::respond(&socket, source_address, response_data.as_str()).await
+                            {
+                                eprint!("HEART BEAT RESPONSE ERROR: {}", error);
+                            }
                         }
                         _ => {
                             eprint!("Invalid Request Type");

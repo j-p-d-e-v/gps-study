@@ -1,9 +1,18 @@
-use gps_tracker::actions::{Heartbeat, Login};
+use gps_tracker::actions::{Coordinates, Heartbeat, Login};
 use gps_tracker::config::Config;
 use gps_tracker::payload::Payload;
 use gps_tracker::response::ResponseType;
 use gps_tracker::RequestType;
+use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::Read;
 use tokio::net::UdpSocket;
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CoordinatesItem {
+    lon: String,
+    lat: String,
+}
 
 #[derive(Debug, Clone)]
 pub struct UdpClient {
@@ -49,10 +58,30 @@ impl UdpClient {
         }
     }
 
+    pub async fn load_coordinates_data(
+        &self,
+        path: String,
+    ) -> Result<Vec<CoordinatesItem>, String> {
+        match File::options().read(true).open(path) {
+            Ok(mut file) => {
+                let mut buf = String::new();
+                if let Err(error) = file.read_to_string(&mut buf) {
+                    return Err(error.to_string());
+                }
+                match serde_json::from_str(&buf) {
+                    Ok(values) => Ok(values),
+                    Err(error) => Err(error.to_string()),
+                }
+            }
+            Err(error) => Err(error.to_string()),
+        }
+    }
+
     pub async fn simulate(
         &mut self,
         current_request_type: RequestType,
         client_id: Option<String>,
+        coordinates: Option<CoordinatesItem>,
     ) -> Result<String, String> {
         let socket = self.launch().await?;
         match socket.connect(self.config.server.host.clone()).await {
@@ -87,6 +116,44 @@ impl UdpClient {
                         let payload_data = Payload::to_binary(&payload_generator)?;
                         if let Err(error) = socket.send(&payload_data).await {
                             return Err(format!("HEARTBEAT REQUEST ERROR: {}", error.to_string()));
+                        }
+                    }
+                    RequestType::Coordinates => {
+                        let client_id: u32 = if let Some(client_id) = client_id {
+                            match client_id.parse::<u32>() {
+                                Ok(value) => value,
+                                Err(_) => {
+                                    return Err(
+                                        "unable to parse client id in heartbeat".to_string()
+                                    );
+                                }
+                            }
+                        } else {
+                            return Err("invalid client id".to_string());
+                        };
+                        let mut lon: f64 = 0.0;
+                        let mut lat: f64 = 0.0;
+                        if let Some(item) = coordinates {
+                            lon = if let Ok(value) = item.lon.parse::<f64>() {
+                                value
+                            } else {
+                                return Err("unable to parse lon coordinates".to_string());
+                            };
+                            lat = if let Ok(value) = item.lat.parse::<f64>() {
+                                value
+                            } else {
+                                return Err("unable to parse lat coordinates".to_string());
+                            };
+                        }
+                        println!("Coordinates: {}", client_id);
+                        let payload_generator =
+                            Coordinates::generate_payload(client_id, lat, lon).await?;
+                        let payload_data = Payload::to_binary(&payload_generator)?;
+                        if let Err(error) = socket.send(&payload_data).await {
+                            return Err(format!(
+                                "COORDINATES REQUEST ERROR: {}",
+                                error.to_string()
+                            ));
                         }
                     }
                     _ => {
@@ -129,6 +196,17 @@ impl UdpClient {
                                     String::from_utf8_lossy(client_id_filled).to_string();
                                 println!("Client Id: {}", client_id);
                                 return Ok(client_id);
+                            } else if request_type == &RequestType::Coordinates.to_value() {
+                                println!("Coordinates Response");
+                                let client_id_filled = if let Some(id) = filled.get(2..) {
+                                    id
+                                } else {
+                                    return Err("invalid client id".to_string());
+                                };
+                                let client_id =
+                                    String::from_utf8_lossy(client_id_filled).to_string();
+                                println!("Client Id: {}", client_id);
+                                return Ok(client_id);
                             } else {
                                 return Err("unknown request type".to_string());
                             }
@@ -147,7 +225,36 @@ impl UdpClient {
 }
 #[cfg(test)]
 mod tests {
+
     use super::*;
+    use crate::CoordinatesItem;
+    use std::{fs::File, io::Read};
+
+    #[tokio::test]
+    async fn load_coordinates() {
+        match File::options()
+            .read(true)
+            .open("/mnt/d/coding/study-udp/storage/sample_data_1.json")
+        {
+            Ok(mut file) => {
+                let mut buf = String::new();
+                println!("Size: {}", file.read_to_string(&mut buf).unwrap());
+
+                let mut data: Vec<CoordinatesItem> = serde_json::from_str(&buf).unwrap();
+                for _ in 0..4 {
+                    for item in &data {
+                        println!("LON:{}, LAT:{}", item.lon, item.lat);
+                    }
+                    data.reverse();
+                    println!("============");
+                }
+                println!("Length: {}", data.len());
+            }
+            Err(error) => {
+                assert!(false, "{:?}", error.to_string());
+            }
+        }
+    }
 
     #[tokio::test]
     async fn test_client() {
@@ -159,10 +266,13 @@ mod tests {
         .await;
         assert!(client.is_ok(), "{:?}", client.err());
         let mut client: UdpClient = client.unwrap();
-        let simulation: Result<String, String> = client.simulate(RequestType::Login, None).await;
+        let simulation: Result<String, String> =
+            client.simulate(RequestType::Login, None, None).await;
         assert!(simulation.is_ok(), "{:?}", simulation.err());
 
-        let client_id: String = simulation.unwrap().clone();
+        let hb_client_id: String = simulation.unwrap().clone();
+        let client_id: String = hb_client_id.clone();
+        println!("Client Id: {}", client_id);
         let handler = tokio::spawn(async move {
             let client: Result<UdpClient, String> = UdpClient::new(
                 "0.0.0.0:7086".to_string(),
@@ -175,12 +285,30 @@ mod tests {
 
             loop {
                 let simulation: Result<String, String> = client
-                    .simulate(RequestType::HeartBeat, Some(client_id.clone()))
+                    .simulate(RequestType::HeartBeat, Some(hb_client_id.clone()), None)
                     .await;
                 assert!(simulation.is_ok(), "{:?}", simulation.err());
                 std::thread::sleep(std::time::Duration::from_secs(3));
             }
         });
+
+        let path = "/mnt/d/coding/study-udp/storage/sample_data_1.json".to_string();
+        let coordinates_data = client.load_coordinates_data(path).await;
+        assert!(coordinates_data.is_ok(), "{:?}", coordinates_data.err());
+        let mut coordinates_data = coordinates_data.unwrap();
+        for _ in 0..10 {
+            for item in &coordinates_data {
+                let result = client
+                    .simulate(
+                        RequestType::Coordinates,
+                        Some(client_id.clone()),
+                        Some(item.to_owned()),
+                    )
+                    .await;
+                assert!(result.is_ok(), "{:?}", result.err());
+            }
+            coordinates_data.reverse();
+        }
         handler.await.unwrap();
     }
 }

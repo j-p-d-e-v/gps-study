@@ -1,6 +1,7 @@
 use crate::db::Db;
 use crate::payload::Payload;
 use crate::request::RequestType;
+use crate::response::ResponseType;
 use crate::user::{User, UserData};
 use crate::validation::ValidationError;
 use chrono::Utc;
@@ -11,10 +12,10 @@ use surrealdb::RecordId;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CoordinatesData {
-    user: Option<RecordId>,
-    latitude: f64,
-    longitude: f64,
-    timestamp: Datetime,
+    pub user: RecordId,
+    pub latitude: f64,
+    pub longitude: f64,
+    pub timestamp: Datetime,
 }
 /// Format:
 /// Type: 0x02
@@ -47,8 +48,8 @@ impl Coordinates {
         longitude: f64,
     ) -> Result<String, String> {
         let hex_client_id: String = format!("{:08x}", client_id);
-        let request_type = format!("{:02x}", RequestType::HeartBeat.to_value());
-        let payload_length = format!("{:04x}", RequestType::HeartBeat.get_length());
+        let request_type = format!("{:02x}", RequestType::Coordinates.to_value());
+        let payload_length = format!("{:04x}", RequestType::Coordinates.get_length());
         let latitude_hex: String = if let Ok(v) = IEEE754::to_64bit_hex(latitude) {
             v
         } else {
@@ -69,6 +70,20 @@ impl Coordinates {
         ))
     }
 
+    pub async fn generate_response(client_id: String, is_error: bool) -> Result<String, String> {
+        let hex_client_id: String = hex::encode_upper(client_id);
+        let request_type = format!("{:02x}", RequestType::Coordinates.to_value());
+        let response_status = if is_error {
+            ResponseType::Error.to_value()
+        } else {
+            ResponseType::Success.to_value()
+        };
+        let with_spacing = Payload::apply_spacing(
+            format!("{}{:02x}{}", request_type, response_status, hex_client_id).as_str(),
+        );
+        Ok(with_spacing)
+    }
+
     pub async fn parse(payload_length: usize, data: &[u8]) -> Result<CoordinatesData, String> {
         if data.len() < payload_length {
             return Err(ValidationError::InvalidCoordinatesPayload.to_string());
@@ -84,11 +99,16 @@ impl Coordinates {
                         let user: User = User::new().await?;
                         println!("Client Id:{:?}", client_id);
                         let user_data: UserData = user.get_by_client_id(client_id).await?;
+                        let user_id = if let Some(user_id) = user_data.id {
+                            user_id
+                        } else {
+                            return Err("invalid user id".to_string());
+                        };
 
                         let mut coordinates_data: CoordinatesData = CoordinatesData {
                             longitude: 0.0,
                             latitude: 0.0,
-                            user: user_data.id,
+                            user: user_id,
                             timestamp: Datetime::from(Utc::now()),
                         };
 

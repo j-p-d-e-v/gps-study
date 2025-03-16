@@ -37,7 +37,6 @@ impl Login {
 
     pub async fn generate_response(client_id: String, is_error: bool) -> Result<String, String> {
         let hex_client_id: String = hex::encode_upper(client_id);
-        println!("Hex Client Id: {}", hex_client_id);
         let request_type = format!("{:02x}", RequestType::Login.to_value());
         let response_status = if is_error {
             ResponseType::Error.to_value()
@@ -47,7 +46,6 @@ impl Login {
         let with_spacing = Payload::apply_spacing(
             format!("{}{:02x}{}", request_type, response_status, hex_client_id).as_str(),
         );
-        println!("with spacing: {}", with_spacing);
         Ok(with_spacing)
     }
 
