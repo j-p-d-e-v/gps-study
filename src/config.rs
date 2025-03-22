@@ -1,6 +1,6 @@
 use serde::Deserialize;
+use std::env;
 use std::{fs::File, io::Read};
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ServerConfig {
     pub host: String,
@@ -23,7 +23,9 @@ pub struct Config {
 
 impl Config {
     pub async fn load(file_path: Option<String>) -> Result<Config, String> {
-        let file_path: String = if let Some(value) = file_path {
+        let file_path: String = if let Ok(value) = env::var("APP_CONFIG_PATH") {
+            value
+        } else if let Some(value) = file_path {
             value
         } else {
             "config.toml".to_string()
