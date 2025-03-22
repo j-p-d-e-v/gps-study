@@ -1,8 +1,8 @@
-use serde::Deserialize;
+use serde::{ Serialize, Deserialize};
 use surrealdb::RecordId;
 use crate::db::Db;
 
-#[derive(Debug,Clone, Deserialize)]
+#[derive(Debug,Clone, Serialize, Deserialize)]
 pub struct UserData {
     pub id: Option<RecordId>,
     pub name: String,
