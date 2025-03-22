@@ -1621,6 +1621,7 @@ name = "gps-tracker"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "futures",
  "hex",
  "ieee-754",
  "serde",
@@ -1641,6 +1642,24 @@ dependencies = [
  "serde_json",
  "tokio",
  "toml",
+]
+
+[[package]]
+name = "gps-tracker-web"
+version = "0.1.0"
+dependencies = [
+ "actix-files",
+ "actix-web",
+ "actix-ws",
+ "chrono",
+ "clap",
+ "futures",
+ "futures-util",
+ "gps-tracker",
+ "serde",
+ "serde_json",
+ "surrealdb",
+ "tokio",
 ]
 
 [[package]]
@@ -4591,20 +4610,6 @@ dependencies = [
  "parking_lot",
  "pin-utils",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "web"
-version = "0.1.0"
-dependencies = [
- "actix-files",
- "actix-web",
- "actix-ws",
- "gps-tracker",
- "serde",
- "serde_json",
- "surrealdb",
- "tokio",
 ]
 
 [[package]]

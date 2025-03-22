@@ -27,7 +27,7 @@ impl UdpServer {
     pub async fn launch() -> Result<(), String> {
         let config: Config = Config::load(None).await?;
         let server_config = config.server;
-        println!("Server: {}", server_config.host);
+        println!("UDP Server: {}", server_config.host);
         let socket = UdpSocket::bind(server_config.host).unwrap();
         loop {
             let mut buf = [0; 64];

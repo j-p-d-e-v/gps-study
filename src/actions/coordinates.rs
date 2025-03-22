@@ -17,17 +17,17 @@ pub struct CoordinatesData {
     pub longitude: f64,
     pub timestamp: Datetime,
 }
-/// Format:
-/// Type: 0x02
-/// Payload Length: 0x0010
-/// Payload Format:
-/// - client_id = 4 bytes
-/// - latitude = 8 bytes
-/// - longitude = 8 bytes
-/// Example:
-/// ```
-/// 03 00 04 00 00 5F F4 40 24 00 01 4F 8B 58 8E C0 5F C0 00 04 31 BD E8
-/// ```
+// Format:
+// Type: 0x02
+// Payload Length: 0x0010
+// Payload Format:
+// - client_id = 4 bytes
+// - latitude = 8 bytes
+// - longitude = 8 bytes
+// Example:
+// ```
+// 03 00 04 00 00 5F F4 40 24 00 01 4F 8B 58 8E C0 5F C0 00 04 31 BD E8
+// ```
 
 #[derive(Debug)]
 pub struct Coordinates {
@@ -206,8 +206,7 @@ mod test_coordinates {
         let latitude: f64 = 10.00001;
         let longitude: f64 = -127.000001;
         let payload = Coordinates::generate_payload(client_id, latitude, longitude).await;
-        println!("{:#?}", payload);
-        let test_value_hex = "03 00 04 00 00 5F F4 40 24 00 01 4F 8B 58 8E C0 5F C0 00 04 31 BD E8";
+        let test_value_hex = "02 00 04 00 00 5F F4 40 24 00 01 4F 8B 58 8E C0 5F C0 00 04 31 BD E8";
         assert!(payload.is_ok(), "{:?}", payload.err());
         assert_eq!(test_value_hex, payload.clone().unwrap().as_str());
 
@@ -226,7 +225,7 @@ mod test_coordinates {
                 .create(CoordinatesData {
                     longitude: -127.000001,
                     latitude: 10.00001,
-                    user: Some(RecordId::from_str("users:0dgt5u58j2jh3oq4xzbt").unwrap()),
+                    user: RecordId::from_str("users:0dgt5u58j2jh3oq4xzbt").unwrap(),
                     timestamp: Datetime::from(Utc::now()),
                 })
                 .await;

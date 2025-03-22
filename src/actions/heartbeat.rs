@@ -21,15 +21,15 @@ pub struct HeartbeatData {
 pub struct Heartbeat {
     db: Db,
 }
-/// Format:
-/// Type: 0x03
-/// Payload Length: 0x0004 (4 bytes or greater for client id)
-/// Payload: <client_id> Example: 24564
-///
-/// Example:
-/// ```
-/// 03 00 04 00 00 5F F4
-/// ```
+// Format:
+// Type: 0x03
+// Payload Length: 0x0004 (4 bytes or greater for client id)
+// Payload: <client_id> Example: 24564
+//
+// Example:
+// ```
+// 03 00 04 00 00 5F F4
+// ```
 
 impl Heartbeat {
     /// Generate Payload
@@ -145,8 +145,8 @@ mod test_heartbeat {
             let hb_data = hb
                 .create(HeartbeatData {
                     id: None,
-                    source_address: Some("127.0.0.1".to_string()),
-                    user: Some(RecordId::from_str("users:0dgt5u58j2jh3oq4xzbt").unwrap()),
+                    source_address: "127.0.0.1".to_string(),
+                    user: RecordId::from_str("users:0dgt5u58j2jh3oq4xzbt").unwrap(),
                     timestamp: Datetime::from(Utc::now()),
                 })
                 .await;

@@ -8,3 +8,7 @@ username = "root"
 password = "root"
 namespace = "dev"
 database = "gps"
+
+[web]
+host = "127.0.0.1"
+port = 4090

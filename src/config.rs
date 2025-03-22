@@ -16,9 +16,16 @@ pub struct DatabaseConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+pub struct WebConfig {
+    pub host: String,
+    pub port: u32,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 pub struct Config {
     pub database: DatabaseConfig,
     pub server: ServerConfig,
+    pub web: WebConfig,
 }
 
 impl Config {

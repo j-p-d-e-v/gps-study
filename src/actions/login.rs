@@ -9,15 +9,15 @@ pub struct Login {
     username: String,
     password: String,
 }
-/// Format:
-/// Type: 0x01
-/// Payload Length: 0x0014 (20 bytes, 10 bytes for username and 10 bytes for password)
-/// Payload: <username> <password> example: root notsecurepassword
-///
-/// Example:
-/// ```
-/// 01 00 14 72 6F 6F 74 00 6E 6F 74 73 65 63 75 72 65 70 61 73 73 77 6F 72 64
-/// ```
+// Format:
+// Type: 0x01
+// Payload Length: 0x0014 (20 bytes, 10 bytes for username and 10 bytes for password)
+// Payload: <username> <password> example: root notsecurepassword
+//
+// Example:
+// ```
+// 01 00 14 72 6F 6F 74 00 6E 6F 74 73 65 63 75 72 65 70 61 73 73 77 6F 72 64
+// ```
 impl Login {
     /// Generate Payload
     pub async fn generate_payload(username: String, password: String) -> Result<String, String> {

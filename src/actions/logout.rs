@@ -8,15 +8,15 @@ use crate::validation::ValidationError;
 pub struct Logout {
     db: Db,
 }
-/// Format:
-/// Type: 0x04
-/// Payload Length: 0x0004 (4 bytes or greater for client id)
-/// Payload: <client_id> Example: 24564
-///
-/// Example:
-/// ```
-/// 04 00 04 00 00 5F F4
-/// ```
+// Format:
+// Type: 0x04
+// Payload Length: 0x0004 (4 bytes or greater for client id)
+// Payload: <client_id> Example: 24564
+//
+// Example:
+// ```
+// 04 00 04 00 00 5F F4
+// ```
 
 impl Logout {
     /// Generate Payload
