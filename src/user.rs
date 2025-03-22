@@ -28,6 +28,31 @@ impl User {
     fn get_table(&self) -> String {
         String::from("users")
     }
+
+
+    pub async fn get_users(&self) -> Result<Vec<UserData>,String> {
+        
+        match self.db.client.query("SELECT `id`,`client_id`,`name`,`username`,`password` FROM type::table($table)")
+            .bind(("table",self.get_table())).await {
+
+            Ok(mut result) => {
+
+                match result.take::<Vec<UserData>>(0) {
+                    Ok(data)=> {
+                        
+                        Ok(data)
+                    }
+                    Err(error) => {
+                        Err(format!("user.get_id error: {:?}",error))    
+                    }
+                }
+                
+            }
+            Err(error) => {            
+                Err(format!("user.get_by_client_id  error: {:?}",error))    
+            }
+        }
+    }
     pub async fn get_by_id(&self,id: RecordId) -> Result<UserData,String> {
         
         match self.db.client.query("SELECT `id`,`client_id`,`name`,`username`,`password` FROM type::table($table) WHERE `id`=$id")
