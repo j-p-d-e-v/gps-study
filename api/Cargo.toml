@@ -1,5 +1,5 @@
 [package]
-name = "gps-tracker-web"
+name = "gps-tracker-api"
 version = "0.1.0"
 edition = "2021"
 

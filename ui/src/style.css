@@ -1,30 +1,6 @@
+@import "tailwindcss";
+@plugin "daisyui";
 body {
-	background-color: #fff !important;
-	margin: 3px;
-	width: 100%;
-	height: 100%;
-}
-
-#map {
-	border: 2px solid #cecece;
-	width: 98vw;
-	height: 85vh;
-	margin-left: auto;
-	margin-right: auto;
-}
-
-.ol-mouse-position {
-	background-color: #000;
-	color: #fff;
-	padding: 10px;
-	font-size: 17px;
-}
-
-input {
-	border: 1px solid #cecece;
-	padding: 10px;
-}
-div {
-	font-size: 16px;
-	font-family: Arial;
+	padding: 0px;
+	body: 0px;
 }

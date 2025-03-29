@@ -1632,20 +1632,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "gps-tracker-client"
-version = "0.1.0"
-dependencies = [
- "chrono",
- "clap",
- "gps-tracker",
- "serde",
- "serde_json",
- "tokio",
- "toml",
-]
-
-[[package]]
-name = "gps-tracker-web"
+name = "gps-tracker-api"
 version = "0.1.0"
 dependencies = [
  "actix-files",
@@ -1660,6 +1647,19 @@ dependencies = [
  "serde_json",
  "surrealdb",
  "tokio",
+]
+
+[[package]]
+name = "gps-tracker-client"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "clap",
+ "gps-tracker",
+ "serde",
+ "serde_json",
+ "tokio",
+ "toml",
 ]
 
 [[package]]

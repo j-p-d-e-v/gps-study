@@ -1,5 +1,5 @@
 [workspace]
-members = ["client", "web"]
+members = ["client", "api"]
 resolver = "2"
 
 [package]
